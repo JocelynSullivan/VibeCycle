@@ -1,5 +1,7 @@
 alembic
 fastapi
+fastmcp
+ollama
 passlib[bcrypt]
 psycopg2
 pydantic
@@ -8,3 +10,4 @@ python-decouple
 python-multipart
 sqlmodel
 uvicorn
+uv

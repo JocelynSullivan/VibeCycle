@@ -1,11 +1,12 @@
 from pydantic import BaseModel
 
-
 class CreateUserRequest(BaseModel):
-    pass
+    username: str
+    password: str
 
 class Token(BaseModel):
-    pass
+    access_token: str
+    token_type: str
 
 class TokenData(BaseModel):
-    pass
+    username: str 

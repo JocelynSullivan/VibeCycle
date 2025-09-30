@@ -9,5 +9,4 @@ class Tasks(SQLModel, table=True):
     routine_type: str | None = None
     necessity_level: int | None = None
     difficulty_level: int | None = None
-    is_optional: bool = False
     amount_of_time: int | None = None

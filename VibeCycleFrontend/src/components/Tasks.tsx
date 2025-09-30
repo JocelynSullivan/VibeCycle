@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import TaskCard from "./TaskCard";
 
 type Task = {
-  name: string;
-  energyLevel: number | null;
+  task_name: string;
 };
 
 const Tasks: React.FC = () => {
@@ -19,7 +19,7 @@ const Tasks: React.FC = () => {
         const data: Task[] = await response.json();
         setTasks(data);
       } catch (error: any) {
-        console.error("Error fetching tasks:", error);
+        console.error("Error fetching tasks", error);
       }
     };
 
@@ -27,15 +27,11 @@ const Tasks: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <h2 className="text-2xl text-white mb-4">Your Tasks</h2>
-      <ul>
-        {tasks.map((task) => (
-          <li className="text-gray-300 mb-2">
-            Task: {task.name} - Energy Level: {task.energyLevel}
-          </li>
-        ))}
-      </ul>
+    <div className="flex flex-col">
+      <h2 className="flex justify-center text-2xl text-white mb-4">Your Tasks</h2>
+      <p className="flex flex-wrap justify-between">
+        {tasks && tasks.map((task) => <TaskCard task_name={task.task_name} />)}
+      </p>
     </div>
   );
 };

@@ -39,33 +39,27 @@ def get_task(task_name: str, db: Session = Depends(get_db)) -> Tasks:
 
 @app.post("/tasks", status_code=status.HTTP_201_CREATED)
 def create_task(task: Tasks, db: Session = Depends(get_db)) -> dict:
-    task: Tasks = Tasks(**task.model_dump())
-
-    if not task.routine_type or task.routine_type.lower() not in ["morning", "evening"]:
-        raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
-
-    existing_tasks = db.exec(select(Tasks)).all()
-    for existing in existing_tasks:
-        if existing.task_name.lower() == task.task_name.lower() and existing.routine_type.lower() == task.routine_type.lower():
-            raise HTTPException(status_code=400, detail=f"Task '{task.task_name}' for {task.routine_type} routine already exists")
+    task: Tasks = Tasks(task_name=task.task_name)
 
     db.add(task)
     db.commit()
-    return {"message": "Task created", "To-Do:": task.task_name}
+    return {'response': "task created"}
 
 @app.post("/routine")
-def generate_routine(routine_type: str, energy_level: int, db: Session = Depends(get_db)) -> dict:
-    if routine_type.lower() not in ["morning", "evening"]:
-        raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
+def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
+    # if routine_type.lower() not in ["morning", "evening"]:
+    #     raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
     if energy_level < 1 or energy_level > 5:
         raise HTTPException(status_code=400, detail="Energy level must be between 1 and 5")
-    tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
+    # tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
+    tasks: list[Tasks] = db.exec(select(Tasks)).all()
     if not tasks:
-        raise HTTPException(status_code=404, detail=f"No tasks found for {routine_type} routine")
-    prompt: str = f"Generate a {routine_type} routine for someone with an energy level of {energy_level}. Here are some tasks to choose from: {tasks}"
+        # raise HTTPException(status_code=404, detail=f"No tasks found for {routine_type} routine")
+        raise HTTPException(status_code=404, detail=f"No tasks found")
+    prompt: str = f"Generate one morning routine and one evening routine in a list format that include the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. Include necessity level from 1-5, and also include optional additional tasks that can be done if the person has a little more energy. Here are some tasks to choose from: {tasks}"
     try:
         response = ollama.generate(model="llama3", prompt=prompt)
-        return {"routine": response["text"]}
+        return {"routine": response['response']}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating routine: {str(e)}")
 

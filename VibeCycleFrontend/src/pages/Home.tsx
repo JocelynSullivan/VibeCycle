@@ -1,5 +1,6 @@
 import AddTask from "../components/AddTask";
-// import Tasks from "../components/Tasks";
+import Tasks from "../components/Tasks";
+import RoutineResponse from "../components/Routine";
 
 const Home: React.FC = () => {
   return (
@@ -18,9 +19,12 @@ const Home: React.FC = () => {
       <div className="flex justify-center pt-5">
         <AddTask />
       </div>
-      {/* <div>
+      <div>
         <Tasks />
-      </div> */}
+      </div>
+      <div>
+        <RoutineResponse />
+      </div>
     </div>
   );
 };

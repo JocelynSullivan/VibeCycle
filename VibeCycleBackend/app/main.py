@@ -7,7 +7,7 @@ from typing import Annotated
 
 from app.database import get_db
 from app.models import User, Tasks
-from app.schemas import CreateUserRequest, Token, TokenData
+from app.schemas import CreateUserRequest, Token, CreateRoutineRequest
 from app.routers import ai, auth
 from pydantic import BaseModel
 
@@ -49,14 +49,14 @@ def create_task(task: Tasks, db: Session = Depends(get_db)) -> dict:
 def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
     # if routine_type.lower() not in ["morning", "evening"]:
     #     raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
-    if energy_level < 1 or energy_level > 5:
-        raise HTTPException(status_code=400, detail="Energy level must be between 1 and 5")
+    # if energy_level < 1 or energy_level > 5:
+    #     raise HTTPException(status_code=400, detail="Energy level must be between 1 and 5")
     # tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
     tasks: list[Tasks] = db.exec(select(Tasks)).all()
     if not tasks:
         # raise HTTPException(status_code=404, detail=f"No tasks found for {routine_type} routine")
         raise HTTPException(status_code=404, detail=f"No tasks found")
-    prompt: str = f"Generate one morning routine and one evening routine in a list format that include the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. Include necessity level from 1-5, and also include optional additional tasks that can be done if the person has a little more energy. Here are some tasks to choose from: {tasks}"
+    prompt: str = f"Generate one morning routine and one evening routine in a list format that include the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. Include optional additional tasks that can be done if the person has a little more energy. Choose some or all of these tasks: {tasks}"
     try:
         response = ollama.generate(model="llama3", prompt=prompt)
         return {"routine": response['response']}

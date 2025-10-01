@@ -1,5 +1,8 @@
 from pydantic import BaseModel
 
+class CreateRoutineRequest(BaseModel):
+    routine: dict[str, str]
+
 class CreateUserRequest(BaseModel):
     username: str
     password: str

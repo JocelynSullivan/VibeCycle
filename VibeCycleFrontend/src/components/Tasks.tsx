@@ -29,9 +29,9 @@ const Tasks: React.FC = () => {
   return (
     <div className="flex flex-col">
       <h2 className="flex justify-center text-2xl text-white mb-4">Your Tasks</h2>
-      <p className="flex flex-wrap justify-between">
+      <div className="flex flex-wrap justify-evenly">
         {tasks && tasks.map((task) => <TaskCard task_name={task.task_name} />)}
-      </p>
+      </div>
     </div>
   );
 };

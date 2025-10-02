@@ -1,3 +1,4 @@
+import AddTask from "./AddTask";
 import { useEffect, useState } from "react";
 import TaskCard from "./TaskCard";
 
@@ -26,11 +27,23 @@ const Tasks: React.FC = () => {
     fetchTasks();
   }, []);
 
+  const handleDelete = (task_name: string) => {
+    const updatedTasks = tasks.filter((task) => task.task_name !== task_name);
+    setTasks(updatedTasks);
+  };
+
+  const handleSubmit = (task_name: string) => {
+    setTasks([...tasks, { task_name }]);
+  };
   return (
     <div className="flex flex-col">
-      <h2 className="flex justify-center text-2xl text-white mb-4">Your Tasks</h2>
+      <AddTask handleTaskSubmit={handleSubmit} />
+      <h2 className="flex justify-center text-2xl text-gray-300 mb-4">Your Tasks</h2>
       <div className="flex flex-wrap justify-evenly">
-        {tasks && tasks.map((task) => <TaskCard task_name={task.task_name} />)}
+        {tasks &&
+          tasks.map((task) => (
+            <TaskCard handleTaskDelete={handleDelete} key={task.task_name} task_name={task.task_name} />
+          ))}
       </div>
     </div>
   );

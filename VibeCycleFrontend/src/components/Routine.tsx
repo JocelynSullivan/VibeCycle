@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Suspense } from "react";
 
 type PostResponse = {
   routine: string;
@@ -31,8 +30,8 @@ const RoutineResponse: React.FC = () => {
 
   return (
     <div className="bg-black">
-      <h2 className="text-gray-400">Your Routines</h2>
-      <h3 className="text-gray-400">{routineResponse?.routine}</h3>
+      <h2 className="flex justify-center text-gray-300 text-2xl pt-10">Your Routines</h2>
+      <h3 className="text-gray-400 p-10">{routineResponse?.routine}</h3>
     </div>
   );
 };

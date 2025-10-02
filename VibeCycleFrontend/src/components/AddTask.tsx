@@ -6,7 +6,11 @@ type NewTask = {
   task_name: string;
 };
 
-const AddTask: React.FC = () => {
+type NewTaskProps = {
+  handleTaskSubmit: (task_name: string) => void;
+};
+
+const AddTask: React.FC<NewTaskProps> = ({ handleTaskSubmit }) => {
   const [newTask, setNewTask] = useState<NewTask>({
     task_name: "",
   });
@@ -53,8 +57,7 @@ const AddTask: React.FC = () => {
     setNewTask({
       task_name: "",
     });
-
-    location.reload();
+    handleTaskSubmit(newTask.task_name);
   };
 
   return (

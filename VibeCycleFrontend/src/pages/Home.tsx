@@ -1,11 +1,10 @@
-import AddTask from "../components/AddTask";
 import Tasks from "../components/Tasks";
 import RoutineResponse from "../components/Routine";
 
 const Home: React.FC = () => {
   return (
     <div className="bg-black h-full">
-      <h1 className="flex justify-center p-10 text-5xl bg-gradient-to-t from-cyan-600 to-cyan-900 font-stretch-50%">
+      <h1 className="flex justify-center p-7 text-5xl bg-gradient-to-t from-cyan-600 to-cyan-900 font-stretch-50%">
         Welcome to Vibe Cycle!
       </h1>
       <div className="flex justify-center pt-10">
@@ -17,9 +16,6 @@ const Home: React.FC = () => {
         </p>
       </div>
       <div className="flex justify-center">
-        <AddTask />
-      </div>
-      <div>
         <Tasks />
       </div>
       <div>

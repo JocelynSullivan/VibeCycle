@@ -21,16 +21,16 @@ const TaskCard: React.FC<TaskCardInfo> = ({ task_name, handleTaskDelete }) => {
     handleTaskDelete(task_name);
   };
   return (
-    <div className="bg-cyan-900 text-white text-center text-wrap w-42 h-15 m-2 flex justify-center rounded-xl">
-      <div className="flex flex-col justify-center">
-        <div className="flex justify-end -mt-5">
-          <span>
-            <Button type="submit" className="w-1 h-5 bg-gray-800 rounded-full" onClick={handleDelete}>
-              x
-            </Button>
-          </span>
+    <div>
+      <div className="flex justify-end -mb-4">
+        <Button type="submit" className="w-1 h-5 bg-gray-800 rounded-full hover: cursor-pointer" onClick={handleDelete}>
+          x
+        </Button>
+      </div>
+      <div className="bg-cyan-900 text-white text-center text-wrap w-42 h-15 m-2 flex justify-center rounded-xl">
+        <div className="flex flex-col justify-center">
+          <h1 className="text-xl">{task_name}</h1>
         </div>
-        <h1 className="text-xl">{task_name}</h1>
       </div>
     </div>
   );

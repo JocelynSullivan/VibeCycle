@@ -113,7 +113,7 @@ const AddTask: React.FC<NewTaskProps> = ({ handleTaskSubmit }) => {
           </div>
         </div>
         <div className="flex justify-center">
-          <Button type="submit" className="w-20 bg-cyan-600 mb-10 hover:bg-cyan-700">
+          <Button type="submit" className="w-20 bg-cyan-600 mb-10 hover:bg-cyan-700 cursor-pointer">
             Add Task
           </Button>
         </div>

@@ -26,6 +26,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
 
+### GET ###
+
 @app.get("/tasks")
 def get_tasks(db: Session = Depends(get_db)) -> list[Tasks]:
     return db.exec(select(Tasks)).all()
@@ -36,6 +38,24 @@ def get_task(task_name: str, db: Session = Depends(get_db)) -> Tasks:
     if not task:
         raise HTTPException(status_code=404, detail=f"Task '{task_name}' not found")
     return task
+
+@app.get("/users")
+async def get_users(db: Session = Depends(get_db)) -> list[User]:
+    users = db.exec(select(User)).all()
+
+    if not users:
+        raise HTTPException(status_code=404, detail="No users found")
+    return users
+
+@app.get("/users/me", response_model=User)
+async def read_users_me(current_user: User = Depends(auth.get_current_user)) -> User:
+    return current_user
+
+@app.get("/users/me/items")
+async def read_own_items(current_user: User = Depends(auth.get_current_user)) -> list[dict]:
+    return [{"item_id": "Foo", "owner_id": current_user.username}]
+
+### POST ###
 
 @app.post("/tasks", status_code=status.HTTP_201_CREATED)
 def create_task(task: Tasks, db: Session = Depends(get_db)) -> dict:
@@ -63,27 +83,6 @@ def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating routine: {str(e)}")
 
-@app.delete("/tasks/{task_name}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_name: str, db: Session = Depends(get_db)) -> None:
-    task: Tasks | None = db.get(Tasks, task_name)
-    if not task:
-        raise HTTPException(status_code=404, detail=f"Task '{task_name}' not found")
-    db.delete(task)
-    db.commit()
-
-
-@app.get("/users")
-async def get_users(db: Session = Depends(get_db)) -> list[User]:
-    return db.exec(select(User)).all()
-
-@app.get("/users/me", response_model=User)
-async def read_users_me(current_user: User = Depends(auth.get_current_user)) -> User:
-    return current_user
-
-@app.get("/users/me/items")
-async def read_own_items(current_user: User = Depends(auth.get_current_user)) -> dict:
-    return [{"item_id": "Foo", "owner_id": current_user.username}]
-
 @app.post("/token")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)) -> Token:
     user: User | None = db.get(User, form_data.username)
@@ -110,4 +109,22 @@ async def create_user(new_user: CreateUserRequest, db: Session = Depends(get_db)
     hashed_password: str = auth.get_password_hash(new_user.password)
     user: User = User(**new_user.model_dump(), hashed_password=hashed_password)
     db.add(user)
+    db.commit()
+
+### DELETE ###
+
+@app.delete("/tasks/{task_name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(task_name: str, db: Session = Depends(get_db)) -> None:
+    task: Tasks | None = db.get(Tasks, task_name)
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task '{task_name}' not found")
+    db.delete(task)
+    db.commit()
+
+@app.delete("/users/{username}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(username: str, db: Session = Depends(get_db)) -> None:
+    user: User | None = db.get(User, username)
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User '{username}' not found")
+    db.delete(user)
     db.commit()

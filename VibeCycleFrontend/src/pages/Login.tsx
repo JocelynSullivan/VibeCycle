@@ -33,11 +33,34 @@ const Login: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    setToken("this is a test token");
-    navigate("/", { replace: true });
+    try {
+      const formData = new URLSearchParams();
+      formData.append("username", newUserFormData.username);
+      formData.append("password", newUserFormData.password);
+
+      const response = await fetch("http://localhost:8000/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData.toString(),
+      });
+
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+
+      const data = await response.json();
+      setToken(data.access_token);
+      debugger;
+      navigate("/home", { replace: true });
+    } catch (error) {
+      console.error("Login error:", error);
+      alert(error instanceof Error ? error.message : "An error occurred during login");
+    }
   };
 
   return (

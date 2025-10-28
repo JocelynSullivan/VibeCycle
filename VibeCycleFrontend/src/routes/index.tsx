@@ -2,7 +2,9 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { useAuth } from "../provider/AuthProvider";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Login from "../pages/Login";
+import Logout from "../pages/Logout";
 import Home from "../pages/Home";
+
 // import App from "../App";
 
 const Routes = () => {
@@ -17,18 +19,24 @@ const Routes = () => {
 
   const routesForAuthenticatedOnly = [
     {
-      path: "/",
+      path: "/home",
       element: (
         <ProtectedRoute>
           <Home />
         </ProtectedRoute>
       ),
+      // children: [
+      //   {
+      //     path: "/logout",
+      //     element: <Logout />,
+      //   },
+      // ],
     },
   ];
 
   const routesForNotAuthenticatedOnly = [
     {
-      path: "/login",
+      path: "/",
       element: <Login />,
     },
   ];

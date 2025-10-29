@@ -74,8 +74,7 @@ def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
     # tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
     tasks: list[Tasks] = db.exec(select(Tasks)).all()
     if not tasks:
-        # raise HTTPException(status_code=404, detail=f"No tasks found for {routine_type} routine")
-        raise HTTPException(status_code=404, detail=f"No tasks found")
+        return {"routine": "No tasks found. Add some tasks first to generate routines."}
     prompt: str = f"Generate one morning routine and one evening routine in a list format that include the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. Include optional additional tasks that can be done if the person has a little more energy. Choose some or all of these tasks: {tasks}"
     try:
         response = ollama.generate(model="llama3", prompt=prompt)

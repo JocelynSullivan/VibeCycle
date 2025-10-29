@@ -1,10 +1,15 @@
 import axios from "axios";
-import { createContext, useContext, useEffect, useState, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 
-const AuthContext = createContext();
+type AuthContextType = {
+  token: string | null;
+  setToken: (newToken: string | null) => void;
+};
 
-const AuthProvider = ({ children }) => {
-  const [token, setToken_] = useState(localStorage.getItem("token"));
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const [token, setToken_] = useState<string | null>(localStorage.getItem("token"));
 
   const setToken = (newToken: string | null) => {
     setToken_(newToken);
@@ -31,6 +36,12 @@ const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = (): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return ctx;
+};
 
 export default AuthProvider;

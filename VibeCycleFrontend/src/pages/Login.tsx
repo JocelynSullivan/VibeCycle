@@ -55,7 +55,6 @@ const Login: React.FC = () => {
 
       const data = await response.json();
       setToken(data.access_token);
-      debugger;
       navigate("/home", { replace: true });
     } catch (error) {
       console.error("Login error:", error);

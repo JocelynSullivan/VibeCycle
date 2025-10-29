@@ -34,6 +34,16 @@ const Routes = () => {
     },
   ];
 
+  // Make sure logout is available for authenticated users
+  routesForAuthenticatedOnly.push({
+    path: "/logout",
+    element: (
+      <ProtectedRoute>
+        <Logout />
+      </ProtectedRoute>
+    ),
+  });
+
   const routesForNotAuthenticatedOnly = [
     {
       path: "/",

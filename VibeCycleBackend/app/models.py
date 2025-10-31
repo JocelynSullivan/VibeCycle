@@ -12,3 +12,11 @@ class Tasks(SQLModel, table=True):
     necessity_level: int | None = None
     difficulty_level: int | None = None
     amount_of_time: int | None = None
+    owner: str | None = None
+
+
+class SavedRoutine(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    owner: str
+    title: str | None = None
+    content: str

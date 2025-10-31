@@ -1,6 +1,7 @@
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { useAuth } from "../provider/AuthProvider";
 
 type NewTask = {
   task_name: string;
@@ -37,7 +38,10 @@ const AddTask: React.FC<NewTaskProps> = ({ handleTaskSubmit }) => {
     // }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const auth = useAuth();
+  const { token } = auth;
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     // const taskToSend = {
@@ -45,14 +49,21 @@ const AddTask: React.FC<NewTaskProps> = ({ handleTaskSubmit }) => {
     //   energyLevel: newTask.energyLevel ? parseInt(newTask.energyLevel, 10) : null,
     // };
 
-    fetch("http://localhost:8000/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newTask),
-      mode: "cors",
-    });
+    try {
+      const res = await fetch("http://localhost:8000/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(newTask),
+        mode: "cors",
+      });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+    } catch (err) {
+      console.error("Error creating task", err);
+      alert("Failed to create task");
+    }
 
     setNewTask({
       task_name: "",

@@ -3,25 +3,42 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlmodel import Session, select
+from sqlalchemy import text
 from typing import Annotated
 
 from app.database import get_db
-from app.models import User, Tasks
-from app.schemas import CreateUserRequest, Token, CreateRoutineRequest
+from app.models import User, Tasks, SavedRoutine
+from app.schemas import CreateUserRequest, Token, CreateRoutineRequest, UpdateSavedRoutine
 from app.routers import ai, auth
 from pydantic import BaseModel
+from app.routers.auth import get_current_user
+from app.schemas import CreateSavedRoutine
 
 import ollama
 
 app = FastAPI(title="Vibe Cycle")
 
 
+# Allow calls from the frontend dev server and provide permissive headers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    # Return a JSON response for uncaught exceptions so the frontend can see details
+    # and the CORS middleware will still attach the Access-Control-Allow-* headers.
+    from fastapi.responses import JSONResponse
+    import traceback
+
+    tb = traceback.format_exc()
+    return JSONResponse(status_code=500, content={"detail": "Internal server error", "error": str(exc), "trace": tb})
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
@@ -82,6 +99,56 @@ def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating routine: {str(e)}")
 
+
+@app.post("/routines", status_code=status.HTTP_201_CREATED)
+def save_routine(body: CreateSavedRoutine, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    # store a routine snapshot
+    routine = SavedRoutine(owner=current_user.username, title=body.title, content=body.content)
+    db.add(routine)
+    db.commit()
+    db.refresh(routine)
+    return {"id": routine.id, "owner": routine.owner, "title": routine.title}
+
+
+@app.get("/routines")
+def list_routines(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[SavedRoutine]:
+    routines = db.exec(select(SavedRoutine).where(SavedRoutine.owner == current_user.username)).all()
+    return routines
+
+
+@app.get("/routines/{routine_id}")
+def get_routine(routine_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> SavedRoutine:
+    routine: SavedRoutine | None = db.get(SavedRoutine, routine_id)
+    if not routine or routine.owner != current_user.username:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    return routine
+
+
+@app.put("/routines/{routine_id}")
+def update_routine(routine_id: int, body: UpdateSavedRoutine, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    routine: SavedRoutine | None = db.get(SavedRoutine, routine_id)
+    if not routine or routine.owner != current_user.username:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    if body.title is not None:
+        routine.title = body.title
+    # optionally update content if provided
+    if hasattr(body, 'content') and getattr(body, 'content') is not None:
+        routine.content = getattr(body, 'content')
+    db.add(routine)
+    db.commit()
+    db.refresh(routine)
+    return {"id": routine.id, "title": routine.title}
+
+
+@app.delete("/routines/{routine_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_routine(routine_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    routine: SavedRoutine | None = db.get(SavedRoutine, routine_id)
+    if not routine or routine.owner != current_user.username:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    db.delete(routine)
+    db.commit()
+
+
 @app.post("/token")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)) -> Token:
     user: User | None = db.get(User, form_data.username)
@@ -119,6 +186,14 @@ def delete_task(task_name: str, db: Session = Depends(get_db)) -> None:
         raise HTTPException(status_code=404, detail=f"Task '{task_name}' not found")
     db.delete(task)
     db.commit()
+
+
+@app.delete("/users/empty", status_code=status.HTTP_204_NO_CONTENT)
+def delete_empty_users(db: Session = Depends(get_db)) -> None:
+    # delete any users with empty username
+    db.exec(text("""DELETE FROM users WHERE COALESCE(username, '') = ''"""))
+    db.commit()
+
 
 @app.delete("/users/{username}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(username: str, db: Session = Depends(get_db)) -> None:

@@ -101,7 +101,14 @@ const Login: React.FC = () => {
                 </div>
                 <div className="flex justify-center pt-15">
                   <p className="text-gray-400">Don't have an account? </p>
-                  <p className="text-cyan-500"> Sign up here.</p>
+                  <p
+                    className="text-cyan-500 cursor-pointer"
+                    onClick={() => {
+                      navigate('/signup');
+                    }}
+                  >
+                    Sign up here.
+                  </p>
                 </div>
               </div>
             </form>

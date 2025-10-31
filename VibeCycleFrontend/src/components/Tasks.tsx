@@ -1,6 +1,5 @@
 import AddTask from "./AddTask";
 import { useEffect, useState } from "react";
-import { useAuth } from "../provider/AuthProvider";
 import TaskCard from "./TaskCard";
 
 type Task = {
@@ -9,15 +8,11 @@ type Task = {
 
 const Tasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const auth = useAuth();
-  const { token } = auth;
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const response = await fetch("http://localhost:8000/tasks", {
-          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        });
+        const response = await fetch("http://localhost:8000/tasks");
         if (!response.ok) {
           throw new Error(`Response status: ${response.status}`);
         }

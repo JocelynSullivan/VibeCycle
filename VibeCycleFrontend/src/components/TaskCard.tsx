@@ -1,5 +1,4 @@
 import { Button } from "./ui/button";
-import { useAuth } from "../provider/AuthProvider";
 
 type TaskCardInfo = {
   task_name: string;
@@ -7,14 +6,10 @@ type TaskCardInfo = {
 };
 
 const TaskCard: React.FC<TaskCardInfo> = ({ task_name, handleTaskDelete }) => {
-  const auth = useAuth();
-  const { token } = auth;
-
   const handleDelete = async () => {
     try {
       const response = await fetch(`http://localhost:8000/tasks/${encodeURIComponent(task_name)}`, {
         method: "DELETE",
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
 
       if (!response.ok) {

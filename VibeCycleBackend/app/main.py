@@ -92,7 +92,24 @@ def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
     tasks: list[Tasks] = db.exec(select(Tasks)).all()
     if not tasks:
         return {"routine": "No tasks found. Add some tasks first to generate routines."}
-    prompt: str = f"Generate one morning routine and one evening routine in a list format that include the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. Include optional additional tasks that can be done if the person has a little more energy. Choose some or all of these tasks: {tasks}"
+
+    # Build a readable list of user-entered tasks to include in the prompt
+    task_descriptions: list[str] = []
+    for t in tasks:
+        desc = t.task_name
+        # if the task has an estimated amount_of_time stored, include it for context
+        if getattr(t, "amount_of_time", None):
+            desc += f" ({t.amount_of_time} min)"
+        task_descriptions.append(desc)
+    task_list = "; ".join(task_descriptions)
+
+    prompt: str = (
+        f"Generate one morning routine and one evening routine in a list format that includes the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. "
+        f"Include optional additional tasks that can be done if the person has a little more energy. "
+        f"Prefer tasks from the user's available tasks list and use that list as the primary source. "
+        f"User tasks: {task_list}. "
+        f"If a task from the list is not applicable, you may skip it, but favor items from the provided list."
+    )
     try:
         response = ollama.generate(model="llama3", prompt=prompt)
         return {"routine": response['response']}

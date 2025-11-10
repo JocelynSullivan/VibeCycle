@@ -13,7 +13,6 @@ const RoutineResponse: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [energyLevel, setEnergyLevel] = useState<number>(1);
   const [items, setItems] = useState<ItemNode[]>([]);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const fetchRoutine = async (level: number) => {
     setLoading(true);
@@ -80,16 +79,14 @@ const RoutineResponse: React.FC = () => {
         textOnly = l.replace(durMatch[0], "").trim();
       }
 
-  // remove markdown emphasis markers like * or _ around titles or headings
-  textOnly = textOnly.replace(/^[*_]+|[*_]+$/g, "").trim();
+      // remove common bullet/number prefixes
+      textOnly = textOnly
+        .replace(/^\s*[-–•\*]\s*/, "")
+        .replace(/^\d+[\).\-]\s*/, "")
+        .trim();
 
-  // remove common bullet/number prefixes
-  textOnly = textOnly.replace(/^\s*[-–•\*]\s*/, "").replace(/^\d+[\).\-]\s*/, "").trim();
-
-  // detect a title: line ends with ':' OR is all-caps OR matches common routines like morning/evening routines
-  const isRoutineTitle = /:\s*$/.test(l) || (/^[A-Z0-9\s]+$/.test(textOnly) && textOnly.length > 2);
-  const isMorningEvening = /\b(morning|evening)\b.*\broutine\b/i.test(textOnly);
-  const isTitle = isRoutineTitle || isMorningEvening;
+      // detect a title: line ends with ':' OR is all-caps (likely a heading)
+      const isTitle = /:$/.test(l) || (/^[A-Z0-9\s]+$/.test(textOnly) && textOnly.length > 2);
       if (isTitle) {
         // strip trailing colon for title
         const titleText = textOnly.replace(/:$/, "").trim();
@@ -105,7 +102,7 @@ const RoutineResponse: React.FC = () => {
 
       if (!textOnly) textOnly = l.replace(/[:\-–]$/, "").trim();
 
-  nodes.push({ type: "task", text: textOnly, done: false, duration });
+      nodes.push({ type: "task", text: textOnly, done: false, duration });
     }
 
     return nodes;
@@ -192,78 +189,36 @@ const RoutineResponse: React.FC = () => {
                 </button>
               </div>
             </div>
-
-            <div className="space-y-4">
-              {/* group items into sections by title */}
-              {(() => {
-                const sections: { title?: string; tasks: Extract<ItemNode, { type: "task" }>[] }[] = [];
-                let current: { title?: string; tasks: Extract<ItemNode, { type: "task" }>[] } | null = null;
-                for (const n of items) {
-                  if (n.type === "title") {
-                    current = { title: n.text, tasks: [] };
-                    sections.push(current);
-                    continue;
-                  }
-                  if (!current) {
-                    current = { title: undefined, tasks: [] };
-                    sections.push(current);
-                  }
-                  current.tasks.push(n);
-                }
-
-                return sections.map((sec, si) => {
-                  const key = sec.title ?? `untitled-${si}`;
-                  const collapsed = !!collapsedSections[key];
+            <div className="space-y-3">
+              {items.map((node, idx) => {
+                if (node.type === "title") {
                   return (
-                    <div key={si} className="bg-gray-800 p-3 rounded">
-                      {sec.title && (
-                        <div className="flex items-center justify-between">
-                          <div className="text-cyan-300 font-semibold text-lg">{sec.title}</div>
-                          <button
-                            onClick={() => setCollapsedSections((s) => ({ ...s, [key]: !s[key] }))}
-                            aria-expanded={!collapsed}
-                            className="flex items-center gap-2 text-gray-200 px-2 py-1 rounded bg-gray-700 hover:bg-gray-700/80"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="none"
-                              stroke="currentColor"
-                              className={`w-4 h-4 transform transition-transform duration-200 ${collapsed ? "rotate-180" : "rotate-0"}`}
-                            >
-                              <path strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M6 8l4 4 4-4" />
-                            </svg>
-                            <span className="text-xs">{collapsed ? "Show" : "Hide"}</span>
-                          </button>
-                        </div>
-                      )}
-                      <div className={`${collapsed ? "hidden" : "block"} mt-2 space-y-2`}>
-                        {sec.tasks.map((task, ti) => {
-                          // find index of the overall items to update state correctly
-                          const globalIndex = items.findIndex((it) => it === task);
-                          return (
-                            <div key={ti} className="flex items-start gap-3">
-                              <button
-                                aria-pressed={task.done}
-                                onClick={() =>
-                                  setItems((prev) => prev.map((p, i) => (i === globalIndex && p.type === "task" ? { ...p, done: !p.done } : p)))
-                                }
-                                className={`mt-1 w-5 h-5 rounded-sm flex-none border ${
-                                  task.done ? "bg-green-600 border-green-600" : "bg-transparent border-gray-500"
-                                }`}
-                              />
-                              <div className="flex-1">
-                                <div className={`text-gray-100 ${task.done ? "line-through opacity-60" : ""}`}>{task.text}</div>
-                                {task.duration && <div className="text-xs text-gray-400">{task.duration}</div>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    <div key={idx} className="text-cyan-300 font-semibold text-lg mt-3">
+                      {node.text}
                     </div>
                   );
-                });
-              })()}
+                }
+                // task node
+                return (
+                  <div key={idx} className="flex items-start gap-3">
+                    <button
+                      aria-pressed={node.done}
+                      onClick={() =>
+                        setItems((prev) =>
+                          prev.map((p, i) => (i === idx && p.type === "task" ? { ...p, done: !p.done } : p))
+                        )
+                      }
+                      className={`mt-1 w-5 h-5 rounded-sm flex-none border ${
+                        node.done ? "bg-green-600 border-green-600" : "bg-transparent border-gray-500"
+                      }`}
+                    />
+                    <div className="flex-1">
+                      <div className={`text-gray-100 ${node.done ? "line-through opacity-60" : ""}`}>{node.text}</div>
+                      {node.duration && <div className="text-xs text-gray-400">{node.duration}</div>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : (

@@ -41,7 +41,9 @@ const Home: React.FC = () => {
   return (
     <div className="bg-black h-full">
       <div className="flex justify-center items-center p-7 bg-gradient-to-t from-cyan-600 to-cyan-900">
-        <h1 className="text-5xl font-stretch-50% text-black">Welcome to Vibe Cycle!</h1>
+        <h1 className="text-5xl font-stretch-50% text-black">
+          {username ? `Hey there, ${username}!` : "Welcome to Vibe Cycle!"}
+        </h1>
         <div className="flex items-center absolute top-8 right-5 gap-3">
           <div className="relative" ref={menuRef}>
             <button
@@ -120,13 +122,8 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="flex justify-center pt-10">
-        <p className="text-cyan-500 text-2xl">Your personalized task manager</p>
-      </div>
       <div className="flex justify-center pt-7">
-        <p className="text-gray-400 text-lg px-60">
-          Enter your tasks and energy levels and let Vibe Cycle do the rest!
-        </p>
+        <p className="text-gray-400 text-lg px-60">Enter your tasks and energy levels</p>
       </div>
       <div className="flex justify-center">
         <Tasks />

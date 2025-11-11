@@ -5,6 +5,7 @@ import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import Logout from "../pages/Logout";
 import Home from "../pages/Home";
+import TasksPage from "../pages/TasksPage";
 import Saved from "../pages/Saved";
 import SavedDetail from "../pages/SavedDetail";
 
@@ -21,6 +22,14 @@ const Routes = () => {
   const routesForPublic = [{ path: "/login", element: <Login /> }];
 
   const routesForAuthenticatedOnly = [
+    {
+      path: "/tasks",
+      element: (
+        <ProtectedRoute>
+          <TasksPage />
+        </ProtectedRoute>
+      ),
+    },
     {
       path: "/home",
       element: (

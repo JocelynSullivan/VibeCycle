@@ -1,6 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import Tasks from "../components/Tasks";
 import RoutineResponse from "../components/Routine";
 import { useAuth } from "../provider/AuthProvider";
 
@@ -41,6 +40,11 @@ const Home: React.FC = () => {
   return (
     <div className="bg-black h-full">
       <div className="flex justify-center items-center p-7 bg-gradient-to-t from-cyan-600 to-cyan-900">
+        <div className="absolute top-8 left-5">
+          <Link to="/tasks" className="text-3xl font-stretch-50% text-black hover:underline focus:outline-none">
+            Tasks
+          </Link>
+        </div>
         <h1 className="text-5xl font-stretch-50% text-black">
           {username ? `Hey there, ${username}!` : "Welcome to Vibe Cycle!"}
         </h1>
@@ -122,12 +126,7 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="flex justify-center pt-7">
-        <p className="text-gray-400 text-lg px-60">Enter your tasks and energy levels</p>
-      </div>
-      <div className="flex justify-center">
-        <Tasks />
-      </div>
+      {/* Tasks moved to dedicated TasksPage */}
       <div>
         <RoutineResponse />
       </div>

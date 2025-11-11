@@ -123,24 +123,32 @@ const RoutineResponse: React.FC = () => {
   return (
     <div className="bg-black">
       <div className="flex justify-center items-center gap-4 pt-10">
-        <div className="ml-4 flex items-center gap-4">
-          <input
-            type="range"
-            min={1}
-            max={5}
-            value={energyLevel}
-            onChange={(e) => setEnergyLevel(Number(e.target.value))}
-            className="w-48"
-          />
-          <div className="text-gray-200">
-            <div className="text-sm">Level: {energyLevel}</div>
-            <div className="text-xs text-gray-400">
-              {energyLevel === 1 && "Very Low"}
-              {energyLevel === 2 && "Low"}
-              {energyLevel === 3 && "Medium"}
-              {energyLevel === 4 && "High"}
-              {energyLevel === 5 && "Very High"}
-            </div>
+        <div className="">
+          <p className="flex justify-center text-gray-400 pb-5">How are you feeling today?</p>
+          <div className="flex items-center gap-4">
+            {[
+              { v: 1, label: "exhausted" },
+              { v: 2, label: "tired" },
+              { v: 3, label: "calm" },
+              { v: 4, label: "motivated" },
+              { v: 5, label: "energized" },
+            ].map((lvl) => (
+              <div key={lvl.v} className="flex flex-col items-center">
+                <button
+                  onClick={() => setEnergyLevel(lvl.v)}
+                  aria-pressed={energyLevel === lvl.v}
+                  aria-label={lvl.label}
+                  className={`px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
+                    energyLevel === lvl.v
+                      ? "bg-cyan-600 text-white border-cyan-600"
+                      : "bg-transparent text-gray-200 border-gray-600"
+                  }`}
+                >
+                  {lvl.v}
+                </button>
+                <div className="text-xs text-gray-400 mt-1 capitalize">{lvl.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

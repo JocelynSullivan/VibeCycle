@@ -1,6 +1,7 @@
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { useAuth } from "../provider/AuthProvider";
 
 type NewTask = {
   task_name: string;
@@ -14,6 +15,7 @@ const AddTask: React.FC<NewTaskProps> = ({ handleTaskSubmit }) => {
   const [newTask, setNewTask] = useState<NewTask>({
     task_name: "",
   });
+  const { token, username } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -45,19 +47,36 @@ const AddTask: React.FC<NewTaskProps> = ({ handleTaskSubmit }) => {
     //   energyLevel: newTask.energyLevel ? parseInt(newTask.energyLevel, 10) : null,
     // };
 
-    fetch("http://localhost:8000/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newTask),
-      mode: "cors",
-    });
+    // require authentication
+    if (!token || !username) {
+      // silence or show UI errors as needed
+      console.warn("Must be signed in to add tasks");
+      return;
+    }
 
-    setNewTask({
-      task_name: "",
-    });
-    handleTaskSubmit(newTask.task_name);
+    (async () => {
+      try {
+        const res = await fetch("http://localhost:8000/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(newTask),
+          mode: "cors",
+        });
+
+        if (!res.ok) {
+          throw new Error(`Response status: ${res.status}`);
+        }
+
+        // only update UI after server confirms
+        handleTaskSubmit(newTask.task_name);
+        setNewTask({ task_name: "" });
+      } catch (e) {
+        console.error("Failed to create task", e);
+      }
+    })();
   };
 
   return (

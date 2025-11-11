@@ -46,13 +46,14 @@ app.include_router(ai.router, prefix="/ai", tags=["ai"])
 ### GET ###
 
 @app.get("/tasks")
-def get_tasks(db: Session = Depends(get_db)) -> list[Tasks]:
-    return db.exec(select(Tasks)).all()
+def get_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[Tasks]:
+    # return only tasks owned by the authenticated user
+    return db.exec(select(Tasks).where(Tasks.owner == current_user.username)).all()
 
 @app.get("/tasks/{task_name}")
-def get_task(task_name: str, db: Session = Depends(get_db)) -> Tasks:
+def get_task(task_name: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Tasks:
     task: Tasks | None = db.get(Tasks, task_name)
-    if not task:
+    if not task or task.owner != current_user.username:
         raise HTTPException(status_code=404, detail=f"Task '{task_name}' not found")
     return task
 
@@ -75,21 +76,53 @@ async def read_own_items(current_user: User = Depends(auth.get_current_user)) ->
 ### POST ###
 
 @app.post("/tasks", status_code=status.HTTP_201_CREATED)
-def create_task(task: Tasks, db: Session = Depends(get_db)) -> dict:
-    task: Tasks = Tasks(task_name=task.task_name)
+def create_task(task: Tasks, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    # Normalize incoming task to only include the name for lookup
+    incoming = Tasks(task_name=task.task_name)
 
-    db.add(task)
+    # Check for existing task with the same primary key
+    existing: Tasks | None = db.get(Tasks, incoming.task_name)
+    if existing:
+        # If it belongs to another user, refuse to create/update
+        if existing.owner and existing.owner != current_user.username:
+            raise HTTPException(status_code=409, detail="Task name already exists for another user")
+        # Otherwise treat as an idempotent update for the same owner
+        existing.owner = current_user.username
+        # copy optional fields if provided
+        if getattr(task, "routine_type", None) is not None:
+            existing.routine_type = task.routine_type
+        if getattr(task, "necessity_level", None) is not None:
+            existing.necessity_level = task.necessity_level
+        if getattr(task, "difficulty_level", None) is not None:
+            existing.difficulty_level = task.difficulty_level
+        if getattr(task, "amount_of_time", None) is not None:
+            existing.amount_of_time = task.amount_of_time
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+        return {"response": "task updated"}
+
+    # No existing task, create new and set owner
+    incoming.owner = current_user.username
+    # copy optional metadata
+    incoming.routine_type = getattr(task, "routine_type", None)
+    incoming.necessity_level = getattr(task, "necessity_level", None)
+    incoming.difficulty_level = getattr(task, "difficulty_level", None)
+    incoming.amount_of_time = getattr(task, "amount_of_time", None)
+
+    db.add(incoming)
     db.commit()
-    return {'response': "task created"}
+    db.refresh(incoming)
+    return {"response": "task created"}
 
 @app.post("/routine")
-def generate_routine(energy_level: int, db: Session = Depends(get_db)) -> dict:
+def generate_routine(energy_level: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     # if routine_type.lower() not in ["morning", "evening"]:
     #     raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
     # if energy_level < 1 or energy_level > 5:
     #     raise HTTPException(status_code=400, detail="Energy level must be between 1 and 5")
     # tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
-    tasks: list[Tasks] = db.exec(select(Tasks)).all()
+    tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.owner == current_user.username)).all()
     if not tasks:
         return {"routine": "No tasks found. Add some tasks first to generate routines."}
 
@@ -197,9 +230,9 @@ async def create_user(new_user: CreateUserRequest, db: Session = Depends(get_db)
 ### DELETE ###
 
 @app.delete("/tasks/{task_name}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_name: str, db: Session = Depends(get_db)) -> None:
+def delete_task(task_name: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
     task: Tasks | None = db.get(Tasks, task_name)
-    if not task:
+    if not task or task.owner != current_user.username:
         raise HTTPException(status_code=404, detail=f"Task '{task_name}' not found")
     db.delete(task)
     db.commit()
@@ -219,3 +252,11 @@ async def delete_user(username: str, db: Session = Depends(get_db)) -> None:
         raise HTTPException(status_code=404, detail=f"User '{username}' not found")
     db.delete(user)
     db.commit()
+
+
+@app.get("/admin/tasks")
+def admin_list_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+    """Temporary diagnostic endpoint: lists all tasks with owner for debugging.
+    Only callable by authenticated users in the local environment. Remove after use."""
+    tasks = db.exec(select(Tasks)).all()
+    return [{"task_name": t.task_name, "owner": t.owner} for t in tasks]

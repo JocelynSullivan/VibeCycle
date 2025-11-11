@@ -51,7 +51,7 @@ const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
       setToken,
       username,
     }),
-  [token, username]
+    [token, username]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

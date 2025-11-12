@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../provider/AuthProvider";
+import StickFigure from "./StickFigure";
 
 type PostResponse = {
   routine: string;
@@ -39,9 +40,8 @@ const RoutineResponse: React.FC = () => {
 
   const saveRoutine = async (title?: string) => {
     if (!routineResponse) return;
-    // prompt for title if not provided
     const name = title ?? window.prompt("Name this routine:", "My Routine");
-    if (name === null) return; // user cancelled
+    if (name === null) return;
     try {
       const res = await fetch("http://localhost:8000/routines", {
         method: "POST",
@@ -58,7 +58,6 @@ const RoutineResponse: React.FC = () => {
     }
   };
 
-  // parse routine text into title/task nodes and extract durations
   const parseRoutine = (text: string) => {
     if (!text) return [] as ItemNode[];
     const lines = text
@@ -69,7 +68,6 @@ const RoutineResponse: React.FC = () => {
     const nodes: ItemNode[] = [];
 
     for (const l of lines) {
-      // find duration like '10 min', '15 minutes', '5-7 mins', '30s'
       const durMatch = l.match(/(\b\d+(?:[-–]\d+)?\s*(?:min(?:ute)?s?|mins?|minutes?|sec(?:ond)?s?|s)\b)/i);
       let duration: string | undefined;
       let textOnly = l;
@@ -79,25 +77,19 @@ const RoutineResponse: React.FC = () => {
         textOnly = l.replace(durMatch[0], "").trim();
       }
 
-      // remove common bullet/number prefixes
       textOnly = textOnly
         .replace(/^\s*[-–•\*]\s*/, "")
         .replace(/^\d+[\).\-]\s*/, "")
         .trim();
 
-      // detect a title: line ends with ':' OR is all-caps (likely a heading)
       const isTitle = /:$/.test(l) || (/^[A-Z0-9\s]+$/.test(textOnly) && textOnly.length > 2);
       if (isTitle) {
-        // strip trailing colon for title
         const titleText = textOnly.replace(/:$/, "").trim();
         nodes.push({ type: "title", text: titleText });
         continue;
       }
 
-      // sanitize trailing parenthetical/groups and punctuation from task text
-      // remove trailing parenthetical/bracketed groups like 'task (optional)'
       textOnly = textOnly.replace(/\s*[\(\[\{][^\)\]\}]*[\)\]\}]\s*$/g, "").trim();
-      // remove trailing punctuation and connector characters
       textOnly = textOnly.replace(/[\.\,;:\-–—\(\)\[\]\{\}]+$/g, "").trim();
 
       if (!textOnly) textOnly = l.replace(/[:\-–]$/, "").trim();
@@ -108,7 +100,6 @@ const RoutineResponse: React.FC = () => {
     return nodes;
   };
 
-  // when a new routine is generated, initialize checklist items
   useEffect(() => {
     if (!routineResponse) {
       setItems([]);
@@ -116,9 +107,6 @@ const RoutineResponse: React.FC = () => {
     }
     setItems(parseRoutine(routineResponse.routine || ""));
   }, [routineResponse]);
-
-  // optional: keep initial empty state and require user to generate
-  // useEffect(() => { fetchRoutine(energyLevel); }, []);
 
   return (
     <div className="bg-black">
@@ -151,6 +139,10 @@ const RoutineResponse: React.FC = () => {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <StickFigure energyLevel={energyLevel} />
       </div>
 
       <div className="flex justify-center">
@@ -206,7 +198,6 @@ const RoutineResponse: React.FC = () => {
                     </div>
                   );
                 }
-                // task node
                 return (
                   <div key={idx} className="flex items-start gap-3">
                     <button

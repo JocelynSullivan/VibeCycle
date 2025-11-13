@@ -10,7 +10,9 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-  const [token, setToken_] = useState<string | null>(localStorage.getItem("token"));
+  // Initialize token from localStorage so users stay signed in across reloads.
+  // Use sessionStorage so the token persists across reloads but is cleared when the tab/window is closed.
+  const [token, setToken_] = useState<string | null>(sessionStorage.getItem("token"));
   const [username, setUsername] = useState<string | null>(null);
 
   const setToken = (newToken: string | null) => {
@@ -20,10 +22,10 @@ const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common["Authorization"] = "Bearer " + token;
-      localStorage.setItem("token", token);
+      sessionStorage.setItem("token", token);
     } else {
       delete axios.defaults.headers.common["Authorization"];
-      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
     }
   }, [token]);
 

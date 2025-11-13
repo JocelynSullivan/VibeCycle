@@ -37,9 +37,20 @@ const StickFigure: React.FC<Props> = ({ energyLevel }) => {
           {/* face expressions */}
           {isExhausted && (
             <g>
-              <path d="M -4 2 Q 0 0 4 2" stroke="#333" strokeWidth="1" fill="none" />
-              <line x1="-4" y1="-1" x2="-2" y2="0" stroke="#333" strokeWidth="1" />
-              <line x1="2" y1="0" x2="4" y2="-1" stroke="#333" strokeWidth="1" />
+              {/* sleepy closed/droopy eyes */}
+              <path d="M -5 -1 q2 2 4 0" stroke="#333" strokeWidth="0.9" fill="none" />
+              <path
+                d="M -1.5 -0.8 q1 1.2 3 0"
+                stroke="#333"
+                strokeWidth="0.9"
+                fill="none"
+                opacity="0.9"
+                transform="translate(0,0)"
+              />
+              {/* flat mouth */}
+              <line x1="-3" y1="2.2" x2="3" y2="2.2" stroke="#333" strokeWidth="0.9" strokeLinecap="round" />
+              {/* tiny droplet to emphasize sleepiness */}
+              <ellipse cx="6" cy="-2" rx="0.9" ry="1.6" fill="#cbd5e1" opacity="0.9" />
             </g>
           )}
           {isTired && (
@@ -129,8 +140,8 @@ const StickFigure: React.FC<Props> = ({ energyLevel }) => {
           </g>
         </g>
 
-        {/* sleepy zzz */}
-        {isTired && (
+        {/* sleepy zzz (show for both tired and exhausted) */}
+        {(isTired || isExhausted) && (
           <g>
             <text x="40" y="10" fontSize="6" fill="#cbd5e1" className="sf-zz">
               z

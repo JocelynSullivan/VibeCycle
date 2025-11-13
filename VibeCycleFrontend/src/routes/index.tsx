@@ -85,7 +85,10 @@ const Routes = () => {
     },
   ];
 
+  // Always show the login page at the root path so the dev server opens to the login screen.
+  // This places an unconditional '/' route before the other routes.
   const router = createBrowserRouter([
+    { path: "/", element: <Login /> },
     ...routesForPublic,
     // only include public-not-auth routes when the user is NOT authenticated
     ...(!token ? routesForNotAuthenticatedOnly : []),

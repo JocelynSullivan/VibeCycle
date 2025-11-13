@@ -6,7 +6,10 @@ type PostResponse = {
   routine: string;
 };
 
-type ItemNode = { type: "title"; text: string } | { type: "task"; text: string; done: boolean; duration?: string };
+type ItemNode =
+  | { type: "title"; text: string }
+  | { type: "task"; text: string; done: boolean; duration?: string }
+  | { type: "total"; text: string };
 
 const RoutineResponse: React.FC = () => {
   const [routineResponse, setRoutineResponse] = useState<PostResponse | null>(null);
@@ -16,12 +19,20 @@ const RoutineResponse: React.FC = () => {
   const [items, setItems] = useState<ItemNode[]>([]);
 
   const fetchRoutine = async (level: number) => {
+    if (!token) {
+      setError("You must be signed in to generate a routine.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`http://localhost:8000/routine?energy_level=${encodeURIComponent(level)}`, {
         method: "POST",
         mode: "cors",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
@@ -82,7 +93,60 @@ const RoutineResponse: React.FC = () => {
         .replace(/^\d+[\).\-]\s*/, "")
         .trim();
 
-      const isTitle = /:$/.test(l) || (/^[A-Z0-9\s]+$/.test(textOnly) && textOnly.length > 2);
+      // Detect a total estimated time line and treat it as metadata (non-checkable).
+      // Examples: "Total estimated time: 20 minutes", "Total: 25 min", "Estimated total time - 30 mins"
+      const totalRegex = /(?:total(?:\s+estimated)?(?:\s+time)?|estimated\s+total)\s*[:\-–]?\s*(.+)$/i;
+      const totalMatch = l.match(totalRegex);
+      if (totalMatch) {
+        const totalText = (totalMatch[1] || "").trim().replace(/^[\-–:\s]+|[\-–:\s]+$/g, "");
+        const display = totalText ? `Total estimated time: ${totalText}` : "Total estimated time";
+        nodes.push({ type: "total", text: display });
+        continue;
+      }
+
+      // Treat explicit heading lines from the AI as titles. Recognize common variants
+      // like "Morning routine", "Evening routine", "AM Routine", "Evening Plan",
+      // "Optional tasks", "Additional tasks", etc.
+      const headingVariants = [
+        "morning routine",
+        "evening routine",
+        "am routine",
+        "pm routine",
+        "morning",
+        "evening",
+        "morning plan",
+        "evening plan",
+        "optional tasks",
+        "optional",
+        "additional tasks",
+        "extras",
+        "optional additions",
+        "optional additional tasks",
+        "routine",
+        "plan",
+      ];
+
+      const headingRegex = new RegExp(
+        `^\\s*(?:${headingVariants.map((v) => v.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")).join("|")})\\s*:?$`,
+        "i"
+      );
+      const headingMatch = textOnly.match(headingRegex);
+      if (headingMatch) {
+        const titleText = headingMatch[0].replace(/:$/, "").trim();
+        // Capitalize first letter of each word for display
+        const displayTitle = titleText
+          .split(/\s+/)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+        nodes.push({ type: "title", text: displayTitle });
+        continue;
+      }
+
+      // Treat short lines ending with ':' as titles (e.g. "Morning:") to avoid making them tasks.
+      const isShortHeading =
+        /:$/.test(l) && textOnly.length > 0 && textOnly.length <= 40 && textOnly.split(/\s+/).length <= 6;
+      const isUppercaseTitle = /^[A-Z0-9\s]+$/.test(textOnly) && textOnly.length > 2;
+      const isTitle = isShortHeading || isUppercaseTitle;
       if (isTitle) {
         const titleText = textOnly.replace(/:$/, "").trim();
         nodes.push({ type: "title", text: titleText });
@@ -198,6 +262,16 @@ const RoutineResponse: React.FC = () => {
                     </div>
                   );
                 }
+
+                if (node.type === "total") {
+                  return (
+                    <div key={idx} className="text-sm text-gray-400 italic mt-2">
+                      {node.text}
+                    </div>
+                  );
+                }
+
+                // node is a task
                 return (
                   <div key={idx} className="flex items-start gap-3">
                     <button

@@ -141,7 +141,8 @@ def generate_routine(energy_level: int, current_user: User = Depends(get_current
         f"Include optional additional tasks that can be done if the person has a little more energy. "
         f"Prefer tasks from the user's available tasks list and use that list as the primary source. "
         f"User tasks: {task_list}. "
-        f"If a task from the list is not applicable, you may skip it, but favor items from the provided list."
+    f"If a task from the list is not applicable, you may skip it, but favor items from the provided list. "
+    f"Do not use the '*' character anywhere in the output; avoid asterisk bullets. Use hyphens ('-') or numbered lists instead."
     )
     try:
         response = ollama.generate(model="llama3", prompt=prompt)

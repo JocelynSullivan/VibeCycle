@@ -400,8 +400,8 @@ const RoutineResponse: React.FC = () => {
               }
             }}
           >
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-sm text-gray-400">Generated routine</div>
+            <div className="flex justify-between items-center mb-4 w-90">
+              <div className="text-sm text-gray-400">Your Routine:</div>
               <div className="flex gap-2">
                 {!editMode ? (
                   <>

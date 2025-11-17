@@ -51,6 +51,7 @@ const RoutineResponse: React.FC = () => {
   const { token } = useAuth();
   const dragIndex = useRef<number | null>(null);
   const touchTimer = useRef<number | null>(null);
+  const STORAGE_KEY = "vibe_last_generated_routine";
 
   const startEditing = () => setEditMode(true);
   const stopEditing = () => {
@@ -290,6 +291,31 @@ const RoutineResponse: React.FC = () => {
     }
     setItems(parseRoutine(routineResponse.routine || ""));
   }, [routineResponse]);
+
+  // Load last generated routine from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setRoutineResponse({ routine: saved });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Persist routineResponse.routine to sessionStorage so it survives route navigation
+  useEffect(() => {
+    try {
+      if (routineResponse && routineResponse.routine) {
+        sessionStorage.setItem(STORAGE_KEY, routineResponse.routine);
+      } else {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [routineResponse]);
   return (
     <div className="bg-black">
       <div className="flex justify-center items-center gap-4 pt-10">
@@ -330,27 +356,25 @@ const RoutineResponse: React.FC = () => {
       <div className="flex justify-center">
         <button
           onClick={() => fetchRoutine(energyLevel)}
-          className="ml-2 bg-cyan-600 text-white px-3 py-1 mt-10 rounded"
+          className="ml-2 bg-cyan-600 text-white px-3 py-1 rounded"
           disabled={loading}
         >
           {loading ? "Generating…" : "Generate Routine"}
         </button>
         <button
           onClick={() => saveRoutine()}
-          className="ml-2 bg-green-600 text-white px-3 py-1 mt-10 rounded"
+          className="ml-2 bg-green-600 text-white px-3 py-1 rounded"
           disabled={!routineResponse}
         >
           Save Routine
         </button>
       </div>
 
-      <h2 className="flex justify-center text-gray-300 text-2xl mt-5">Your Routines</h2>
-
       <div className="flex justify-center">
         {error && <p className="text-red-500 mt-6">{error}</p>}
         {routineResponse ? (
           <div
-            className="text-gray-300 p-6 max-w-3xl bg-gray-900 rounded"
+            className="text-gray-300 py-5 px-10 m-10 max-w-3xl rounded outline-1 outline-white"
             onContextMenu={(e) => {
               e.preventDefault();
               if (!editMode) startEditing();

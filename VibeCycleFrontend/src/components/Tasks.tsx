@@ -5,7 +5,6 @@ import { useAuth } from "../provider/AuthProvider";
 
 type Task = {
   task_name: string;
-  done?: boolean;
 };
 
 const Tasks: React.FC = () => {
@@ -51,11 +50,9 @@ const Tasks: React.FC = () => {
           throw new Error(`Response status: ${res.status}`);
         }
 
-  const data: Task[] = await res.json();
-  // normalize tasks to include a `done` flag for UI-only state
-  const normalized = data.map((t) => ({ ...(t as Task), done: (t as Task).done ?? false }));
-  setTasks(normalized);
-  if (storageKey) localStorage.setItem(storageKey, JSON.stringify(normalized));
+        const data: Task[] = await res.json();
+        setTasks(data);
+        if (storageKey) localStorage.setItem(storageKey, JSON.stringify(data));
       } catch (error: any) {
         console.error("Error fetching tasks", error);
       }
@@ -72,15 +69,8 @@ const Tasks: React.FC = () => {
   };
 
   const handleSubmit = (task_name: string) => {
-    const newTasks = [...tasks, { task_name, done: false }];
-    setTasks(newTasks);
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(newTasks));
-  };
-
-  const handleToggle = (task_name: string) => {
-    const updated = tasks.map((t) => (t.task_name === task_name ? { ...t, done: !t.done } : t));
-    setTasks(updated);
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(updated));
+    setTasks([...tasks, { task_name }]);
+    if (storageKey) localStorage.setItem(storageKey, JSON.stringify([...tasks, { task_name }]));
   };
   return (
     <div className="flex flex-col">
@@ -89,13 +79,7 @@ const Tasks: React.FC = () => {
       <div className="flex flex-wrap justify-evenly">
         {tasks &&
           tasks.map((task) => (
-            <TaskCard
-              handleTaskDelete={handleDelete}
-              handleToggle={handleToggle}
-              done={!!task.done}
-              key={task.task_name}
-              task_name={task.task_name}
-            />
+            <TaskCard handleTaskDelete={handleDelete} key={task.task_name} task_name={task.task_name} />
           ))}
       </div>
     </div>

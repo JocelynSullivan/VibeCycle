@@ -143,6 +143,13 @@ def generate_routine(energy_level: int, current_user: User = Depends(get_current
         f"User tasks: {task_list}. "
     f"If a task from the list is not applicable, you may skip it, but favor items from the provided list. "
     f"Do not use the '*' character anywhere in the output; avoid asterisk bullets. Use hyphens ('-') or numbered lists instead."
+    f" Produce ONLY a list of tasks with an estimated duration for each task, followed by a single line with the total estimated time. "
+    f"Do NOT include section headings, explanations, optional sections, or any extra commentary. "
+    f"Each task must appear on its own line in one of these formats (examples):\n"
+    f"- Task name (10 min)\n"
+    f"1. Task name - 10 min\n"
+    f"At the end include exactly one line that starts with 'Total estimated time:' followed by the total (e.g. 'Total estimated time: 45 min')."
+    f" If the user has no tasks, return a single line: 'No tasks available.'"
     )
     try:
         response = ollama.generate(model="llama3", prompt=prompt)

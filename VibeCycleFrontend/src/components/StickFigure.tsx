@@ -47,14 +47,15 @@ const StickFigure: React.FC<Props> = ({ energyLevel }) => {
                 opacity="0.9"
                 transform="translate(0,0)"
               />
-              {/* flat mouth */}
-              <line x1="-3" y1="2.2" x2="3" y2="2.2" stroke="#333" strokeWidth="0.9" strokeLinecap="round" />
+              {/* mouth (swapped from tired) */}
+              <path d="M -3.5 2 Q 0 0 3.5 2" stroke="#333" strokeWidth="0.9" fill="none" />
               {/* tiny droplet to emphasize sleepiness */}
               <ellipse cx="6" cy="-2" rx="0.9" ry="1.6" fill="#cbd5e1" opacity="0.9" />
             </g>
           )}
           {isTired && (
             <g>
+              {/* mouth (same as exhausted) */}
               <path d="M -3.5 2 Q 0 0 3.5 2" stroke="#333" strokeWidth="0.9" fill="none" />
               <circle cx="-3" cy="-1" r="0.9" fill="#333" />
               <circle cx="3" cy="-1" r="0.9" fill="#333" />

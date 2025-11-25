@@ -477,7 +477,7 @@ const RoutineResponse: React.FC = () => {
                                 )
                               )
                             }
-                            className="bg-gray-900 text-gray-100 p-1 rounded w-full"
+                            className="bg-gray-900 hover:cursor-grab text-gray-100 p-1 rounded w-full"
                           />
                           <input
                             value={node.duration ?? ""}

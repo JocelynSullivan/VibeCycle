@@ -40,9 +40,12 @@ const Home: React.FC = () => {
   return (
     <div className="bg-black h-full">
       <div className="flex justify-center items-center p-7 bg-gradient-to-t from-cyan-600 to-cyan-900">
-        <div className="absolute top-8 left-5">
+        <div className="absolute top-8 left-5 flex items-center gap-6">
           <Link to="/tasks" className="text-3xl font-stretch-50% text-black hover:underline focus:outline-none">
             Tasks
+          </Link>
+          <Link to="/routines" className="text-3xl font-stretch-50% text-black hover:underline focus:outline-none">
+            Routines
           </Link>
         </div>
         <h1 className="text-5xl font-stretch-50% text-black">

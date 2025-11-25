@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Tasks from "../components/Tasks";
+import Sheet from "../components/Sheet";
 
 const TasksPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ const TasksPage: React.FC = () => {
         <p className="text-gray-400 text-lg px-60">Enter your tasks here</p>
       </div>
       <div className="flex justify-center">
-        <Tasks />
+        <Sheet />
       </div>
     </div>
   );

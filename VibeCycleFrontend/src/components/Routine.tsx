@@ -53,10 +53,14 @@ const RoutineResponse: React.FC = () => {
   const touchTimer = useRef<number | null>(null);
   const STORAGE_KEY = "vibe_last_generated_routine";
 
-  const startEditing = () => setEditMode(true);
-  const stopEditing = () => {
-    setEditMode(false);
+  const preEditRef = useRef<ItemNode[] | null>(null);
+
+  const startEditing = () => {
+    // snapshot items before editing so we can detect newly added tasks on Done
+    preEditRef.current = items;
+    setEditMode(true);
   };
+  
 
   const parseDurationToMinutes = (dur?: string) => {
     if (!dur) return 0;
@@ -216,7 +220,40 @@ const RoutineResponse: React.FC = () => {
     }
   };
 
-  const applyEdits = () => {
+  const applyEdits = async () => {
+    // If user added new tasks while editing, save them to the tasks endpoint so they persist as user tasks
+    try {
+      const before = preEditRef.current || [];
+      const beforeTexts = new Set<string>(
+        before.filter((n): n is Extract<ItemNode, { type: "task" }> => n.type === "task").map((t) => t.text)
+      );
+
+      const added = items
+        .filter((n): n is Extract<ItemNode, { type: "task" }> => n.type === "task")
+        .map((t) => t.text)
+        .filter((text) => !beforeTexts.has(text));
+
+      if (added.length && token) {
+        // POST any added tasks in parallel; swallow errors but log them
+        await Promise.all(
+          added.map((task_name) =>
+            fetch("http://localhost:8000/tasks", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({ task_name }),
+            }).then((res) => {
+              if (!res.ok) throw new Error(`Failed to create task ${task_name}: ${res.status}`);
+            })
+          )
+        );
+      }
+    } catch (e) {
+      console.error("Error saving new tasks from edits", e);
+    }
+
     // Build content from items and update routineResponse so edits are preserved locally
     if (items.length) {
       const content = items

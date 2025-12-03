@@ -58,7 +58,7 @@ const Sheet: React.FC = () => {
         className="min-h-[60vh] bg-gray-800 text-gray-200 rounded p-6 focus:outline-none shadow-inner"
         style={{ caretColor: "#06b6d4" }}
       />
-      <div className="mt-3 text-xs text-gray-400">Click anywhere to start typing.</div>
+      <div className="mt-3 text-xs text-gray-400">Click anywhere in the gray box to start typing.</div>
     </div>
   );
 };

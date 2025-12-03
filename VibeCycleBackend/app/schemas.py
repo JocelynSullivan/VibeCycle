@@ -5,6 +5,11 @@ class CreateRoutineRequest(BaseModel):
     routine: dict[str, str]
 
 
+class RoutineGenerateRequest(BaseModel):
+    # Optional extra tasks provided by the client to include in generation
+    tasks: list[str] | None = None
+
+
 class CreateSavedRoutine(BaseModel):
     title: str | None = None
     content: str

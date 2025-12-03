@@ -28,12 +28,27 @@ const RoutineResponse: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // Include any local tasks (from localStorage) so the generator can prefer them.
+      const storageKey = username ? `vibe_tasks_${username}` : `vibe_tasks`;
+      let localTasks: string[] = [];
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved) as Array<{ task_name: string }>;
+          localTasks = parsed.map((t) => t.task_name).filter(Boolean);
+        }
+      } catch (e) {
+        // ignore parse issues
+      }
+
       const response = await fetch(`http://localhost:8000/routine?energy_level=${encodeURIComponent(level)}`, {
         method: "POST",
         mode: "cors",
         headers: {
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        body: JSON.stringify({ tasks: localTasks }),
       });
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
@@ -48,7 +63,7 @@ const RoutineResponse: React.FC = () => {
     }
   };
 
-  const { token } = useAuth();
+  const { token, username } = useAuth();
   const dragIndex = useRef<number | null>(null);
   const touchTimer = useRef<number | null>(null);
   const STORAGE_KEY = "vibe_last_generated_routine";

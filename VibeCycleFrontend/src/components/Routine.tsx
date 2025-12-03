@@ -28,27 +28,12 @@ const RoutineResponse: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Include any local tasks (from localStorage) so the generator can prefer them.
-      const storageKey = username ? `vibe_tasks_${username}` : `vibe_tasks`;
-      let localTasks: string[] = [];
-      try {
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          const parsed = JSON.parse(saved) as Array<{ task_name: string }>;
-          localTasks = parsed.map((t) => t.task_name).filter(Boolean);
-        }
-      } catch (e) {
-        // ignore parse issues
-      }
-
       const response = await fetch(`http://localhost:8000/routine?energy_level=${encodeURIComponent(level)}`, {
         method: "POST",
         mode: "cors",
         headers: {
-          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ tasks: localTasks }),
       });
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
@@ -63,19 +48,15 @@ const RoutineResponse: React.FC = () => {
     }
   };
 
-  const { token, username } = useAuth();
+  const { token } = useAuth();
   const dragIndex = useRef<number | null>(null);
   const touchTimer = useRef<number | null>(null);
   const STORAGE_KEY = "vibe_last_generated_routine";
 
-  const preEditRef = useRef<ItemNode[] | null>(null);
-
-  const startEditing = () => {
-    // snapshot items before editing so we can detect newly added tasks on Done
-    preEditRef.current = items;
-    setEditMode(true);
+  const startEditing = () => setEditMode(true);
+  const stopEditing = () => {
+    setEditMode(false);
   };
-  
 
   const parseDurationToMinutes = (dur?: string) => {
     if (!dur) return 0;
@@ -235,40 +216,7 @@ const RoutineResponse: React.FC = () => {
     }
   };
 
-  const applyEdits = async () => {
-    // If user added new tasks while editing, save them to the tasks endpoint so they persist as user tasks
-    try {
-      const before = preEditRef.current || [];
-      const beforeTexts = new Set<string>(
-        before.filter((n): n is Extract<ItemNode, { type: "task" }> => n.type === "task").map((t) => t.text)
-      );
-
-      const added = items
-        .filter((n): n is Extract<ItemNode, { type: "task" }> => n.type === "task")
-        .map((t) => t.text)
-        .filter((text) => !beforeTexts.has(text));
-
-      if (added.length && token) {
-        // POST any added tasks in parallel; swallow errors but log them
-        await Promise.all(
-          added.map((task_name) =>
-            fetch("http://localhost:8000/tasks", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({ task_name }),
-            }).then((res) => {
-              if (!res.ok) throw new Error(`Failed to create task ${task_name}: ${res.status}`);
-            })
-          )
-        );
-      }
-    } catch (e) {
-      console.error("Error saving new tasks from edits", e);
-    }
-
+  const applyEdits = () => {
     // Build content from items and update routineResponse so edits are preserved locally
     if (items.length) {
       const content = items

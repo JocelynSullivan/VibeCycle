@@ -8,7 +8,7 @@ from typing import Annotated
 
 from app.database import get_db
 from app.models import User, Tasks, SavedRoutine
-from app.schemas import CreateUserRequest, Token, CreateRoutineRequest, UpdateSavedRoutine, RoutineGenerateRequest
+from app.schemas import CreateUserRequest, Token, CreateRoutineRequest, UpdateSavedRoutine
 from app.routers import ai, auth
 from pydantic import BaseModel
 from app.routers.auth import get_current_user
@@ -116,41 +116,24 @@ def create_task(task: Tasks, current_user: User = Depends(get_current_user), db:
     return {"response": "task created"}
 
 @app.post("/routine")
-def generate_routine(
-    energy_level: int,
-    body: RoutineGenerateRequest | None = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> dict:
+def generate_routine(energy_level: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     # if routine_type.lower() not in ["morning", "evening"]:
     #     raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
     # if energy_level < 1 or energy_level > 5:
     #     raise HTTPException(status_code=400, detail="Energy level must be between 1 and 5")
     # tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
-    # Start with canonical tasks from the database for this user
     tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.owner == current_user.username)).all()
+    if not tasks:
+        return {"routine": "No tasks found. Add some tasks first to generate routines."}
 
-    # Collect descriptions from DB tasks
+    # Build a readable list of user-entered tasks to include in the prompt
     task_descriptions: list[str] = []
     for t in tasks:
         desc = t.task_name
+        # if the task has an estimated amount_of_time stored, include it for context
         if getattr(t, "amount_of_time", None):
             desc += f" ({t.amount_of_time} min)"
         task_descriptions.append(desc)
-
-    # If the client supplied extra tasks in the request body, append them (avoid duplicates)
-    if body and getattr(body, "tasks", None):
-        for extra in body.tasks:
-            extra_clean = extra.strip()
-            if not extra_clean:
-                continue
-            # avoid adding duplicates by simple case-insensitive check
-            if not any(extra_clean.lower() == td.lower() for td in task_descriptions):
-                task_descriptions.append(extra_clean)
-
-    if not task_descriptions:
-        return {"routine": "No tasks found. Add some tasks first to generate routines."}
-
     task_list = "; ".join(task_descriptions)
 
     prompt: str = (

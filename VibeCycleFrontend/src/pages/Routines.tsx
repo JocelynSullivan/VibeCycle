@@ -52,6 +52,19 @@ const Routines: React.FC = () => {
     }
   };
 
+  // Auto-save whenever the routine or title changes (debounced).
+  useEffect(() => {
+    const key = username ? `${STORAGE_KEY}_${username}` : STORAGE_KEY;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(key, JSON.stringify({ title, routine }));
+      } catch (e) {
+        // ignore
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [title, routine, username]);
+
   const addTask = (day: Day) => {
     const text = window.prompt(`Add task for ${day}`);
     if (!text) return;

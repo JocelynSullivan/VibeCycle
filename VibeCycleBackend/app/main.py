@@ -8,7 +8,7 @@ from typing import Annotated
 
 from app.database import get_db
 from app.models import User, Tasks, SavedRoutine
-from app.schemas import CreateUserRequest, Token, CreateRoutineRequest, UpdateSavedRoutine
+from app.schemas import CreateUserRequest, Token, UpdateSavedRoutine, RoutineGenerateRequest
 from app.routers import ai, auth
 from pydantic import BaseModel
 from app.routers.auth import get_current_user
@@ -116,25 +116,55 @@ def create_task(task: Tasks, current_user: User = Depends(get_current_user), db:
     return {"response": "task created"}
 
 @app.post("/routine")
-def generate_routine(energy_level: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    # if routine_type.lower() not in ["morning", "evening"]:
-    #     raise HTTPException(status_code=400, detail="Routine type must be either 'morning' or 'evening'")
-    # if energy_level < 1 or energy_level > 5:
-    #     raise HTTPException(status_code=400, detail="Energy level must be between 1 and 5")
-    # tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.routine_type == routine_type.lower())).all()
-    tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.owner == current_user.username)).all()
-    if not tasks:
+def generate_routine(body: RoutineGenerateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    # Validate energy level via Pydantic (1-5)
+    energy_level = body.energy_level
+
+    # Fetch user's tasks from DB
+    db_tasks: list[Tasks] = db.exec(select(Tasks).where(Tasks.owner == current_user.username)).all()
+
+    # Helper to normalize text and strip simple HTML
+    import re
+
+    def strip_tags(s: str) -> str:
+        return re.sub(r"<[^>]+>", "", s or "").strip()
+
+    # Collect client-supplied items (prefer notes over explicit list when present)
+    client_items: list[str] = []
+    if body.notes:
+        notes_text = strip_tags(body.notes)
+        # split by newlines and common separators
+        parts = [p.strip() for p in re.split(r"[\r\n;•\-\u2022,]+", notes_text) if p.strip()]
+        client_items.extend(parts)
+    if body.tasks:
+        # explicit tasks override/augment; keep them after notes so notes are preferred
+        client_items.extend([t.strip() for t in body.tasks if t and t.strip()])
+
+    # Build final merged list (notes/tasks first, then DB tasks), dedupe case-insensitively
+    final_items: list[str] = []
+    seen = set()
+
+    def add_item(name: str):
+        key = name.strip().lower()
+        if not key or key in seen:
+            return
+        seen.add(key)
+        final_items.append(name.strip())
+
+    for item in client_items:
+        add_item(item)
+
+    for t in db_tasks:
+        # include any DB task names (and amount_of_time if present)
+        name = t.task_name
+        if getattr(t, "amount_of_time", None):
+            name = f"{name} ({t.amount_of_time} min)"
+        add_item(name)
+
+    if not final_items:
         return {"routine": "No tasks found. Add some tasks first to generate routines."}
 
-    # Build a readable list of user-entered tasks to include in the prompt
-    task_descriptions: list[str] = []
-    for t in tasks:
-        desc = t.task_name
-        # if the task has an estimated amount_of_time stored, include it for context
-        if getattr(t, "amount_of_time", None):
-            desc += f" ({t.amount_of_time} min)"
-        task_descriptions.append(desc)
-    task_list = "; ".join(task_descriptions)
+    task_list = "; ".join(final_items)
 
     prompt: str = (
         f"Generate one morning routine and one evening routine in a list format that includes the estimated amount of time for each task with the total estimated amount of time at the end of each list for someone with an energy level of {energy_level}. "

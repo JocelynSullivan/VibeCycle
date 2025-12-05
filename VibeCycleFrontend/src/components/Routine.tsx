@@ -19,6 +19,8 @@ const RoutineResponse: React.FC = () => {
   const [items, setItems] = useState<ItemNode[]>([]);
   const [editMode, setEditMode] = useState(false);
 
+  const { token, username } = useAuth();
+
   const fetchRoutine = async (level: number) => {
     if (!token) {
       setError("You must be signed in to generate a routine.");
@@ -28,12 +30,40 @@ const RoutineResponse: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8000/routine?energy_level=${encodeURIComponent(level)}`, {
+      // Read optimistic local tasks and sheet notes (per-user keys)
+      const tasksKey = username ? `vibe_tasks_${username}` : "vibe_tasks";
+      const sheetKey = username ? `vibe_sheet_${username}` : "vibe_sheet";
+
+      let localTasks: string[] = [];
+      try {
+        const raw = localStorage.getItem(tasksKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // support both array of strings or array of objects with task_name
+          if (Array.isArray(parsed)) {
+            localTasks = parsed.map((t: any) => (typeof t === "string" ? t : t?.task_name || "")).filter(Boolean);
+          }
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+
+      const sheet = localStorage.getItem(sheetKey) || null;
+
+      const body = {
+        energy_level: level,
+        tasks: localTasks.length ? localTasks : undefined,
+        notes: sheet || undefined,
+      } as any;
+
+      const response = await fetch(`http://localhost:8000/routine`, {
         method: "POST",
         mode: "cors",
         headers: {
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        body: JSON.stringify(body),
       });
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
@@ -48,7 +78,7 @@ const RoutineResponse: React.FC = () => {
     }
   };
 
-  const { token } = useAuth();
+  // useAuth already called above
   const dragIndex = useRef<number | null>(null);
   const touchTimer = useRef<number | null>(null);
   const STORAGE_KEY = "vibe_last_generated_routine";
@@ -81,6 +111,42 @@ const RoutineResponse: React.FC = () => {
     return total;
   };
 
+  // Normalize a task text to a dedupe key: lowercase, trim, collapse spaces, remove punctuation
+  const normalizeTaskKey = (t: string) =>
+    t
+      .toLowerCase()
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/[^\n\w\s-]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  // Remove duplicate tasks while attempting to preserve duration information.
+  // If two tasks share the same normalized text, keep the first one and
+  // inherit duration from the later one if the first lacked it.
+  const dedupeTasks = (nodes: ItemNode[]) => {
+    const seen = new Map<string, Extract<ItemNode, { type: "task" }>>();
+    const out: ItemNode[] = [];
+    for (const n of nodes) {
+      if (n.type !== "task") {
+        // ignore "total" nodes coming from AI text - we'll compute total separately
+        if (n.type === "title") out.push(n);
+        continue;
+      }
+      const key = normalizeTaskKey(n.text);
+      const existing = seen.get(key);
+      if (!existing) {
+        // clone to avoid mutating original
+        const copy = { ...n } as Extract<ItemNode, { type: "task" }>;
+        seen.set(key, copy);
+        out.push(copy);
+      } else {
+        // merge duration if missing
+        if (!existing.duration && n.duration) existing.duration = n.duration;
+      }
+    }
+    return out;
+  };
+
   const formatMinutes = (mins: number) => {
     if (mins <= 0) return "0 min";
     if (mins < 60) return `${mins} min`;
@@ -98,7 +164,21 @@ const RoutineResponse: React.FC = () => {
 
   const addTask = (text = "New task", duration?: string) => {
     setItems((prev) => {
-      const withoutTotal = prev.filter((n) => n.type !== "total");
+      const withoutTotal = prev.filter((n) => n.type !== "total") as Extract<ItemNode, { type: "task" }>[];
+      const key = normalizeTaskKey(text);
+      const existingIdx = withoutTotal.findIndex((t) => normalizeTaskKey(t.text) === key);
+      if (existingIdx !== -1) {
+        // update existing task (preserve done state)
+        const updated = [...withoutTotal];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          text,
+          duration: duration ?? updated[existingIdx].duration,
+        };
+        const totalNode: Extract<ItemNode, { type: "total" }> = { type: "total", text: computeTotalText(updated) };
+        return [...updated, totalNode];
+      }
+
       const taskNode: Extract<ItemNode, { type: "task" }> = { type: "task", text, done: false, duration };
       const next = [...withoutTotal, taskNode];
       const totalNode: Extract<ItemNode, { type: "total" }> = { type: "total", text: computeTotalText(next) };
@@ -281,7 +361,7 @@ const RoutineResponse: React.FC = () => {
       nodes.push({ type: "task", text: textOnly, done: false, duration });
     }
 
-    return nodes;
+    return dedupeTasks(nodes);
   };
 
   useEffect(() => {
@@ -289,6 +369,7 @@ const RoutineResponse: React.FC = () => {
       setItems([]);
       return;
     }
+    // Parse AI response and dedupe tasks before setting items
     setItems(parseRoutine(routineResponse.routine || ""));
   }, [routineResponse]);
 

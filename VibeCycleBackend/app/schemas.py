@@ -25,3 +25,11 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str 
+
+
+class RoutineGenerateRequest(BaseModel):
+    energy_level: int = Field(..., ge=1, le=5)
+    # Free-form notes (may be plain text or small HTML snippet) to prioritize when generating
+    notes: str | None = None
+    # Optional explicit list of task names
+    tasks: list[str] | None = None
